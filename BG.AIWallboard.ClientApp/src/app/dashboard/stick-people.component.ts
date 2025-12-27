@@ -1,4 +1,4 @@
-import { Component, inject, computed, OnInit } from '@angular/core';
+import { Component, inject, computed, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DashboardService } from '../core/dashboard.service';
 import { Department } from '../core/models';
@@ -7,13 +7,13 @@ interface PersonIcon {
   id: string;
   x: number;
   y: number;
-  userId?: string;
-  isActive: boolean;
 }
 
 interface DepartmentCluster {
   department: Department;
   people: PersonIcon[];
+  centerX: number;
+  centerY: number;
 }
 
 @Component({
@@ -22,12 +22,20 @@ interface DepartmentCluster {
   imports: [CommonModule],
   template: `
     <div class="stick-people-container">
-      <svg viewBox="0 0 100 40" class="people-svg" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 700 180" class="people-svg" preserveAspectRatio="xMidYMid meet">
         <defs>
           @for (dept of departments(); track dept.deptId) {
             <filter [id]="'person-glow-' + dept.deptId" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="0.3" result="coloredBlur"/>
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
               <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter [id]="'person-active-glow-' + dept.deptId" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
                 <feMergeNode in="coloredBlur"/>
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
@@ -35,47 +43,51 @@ interface DepartmentCluster {
           }
         </defs>
 
-        @for (cluster of clusters(); track cluster.department.deptId) {
+        @for (cluster of clustersData; track cluster.department.deptId) {
           <g class="department-cluster" 
-             [attr.transform]="'translate(' + cluster.department.peopleClusterPosition.x + ',' + cluster.department.peopleClusterPosition.y + ')'">
+             [attr.transform]="'translate(' + cluster.centerX + ',' + cluster.centerY + ')'">
             @for (person of cluster.people; track person.id) {
               <g class="person-icon" 
-                 [class.active]="isPersonActive(cluster.department.deptId, person.id)"
-                 [attr.transform]="'translate(' + person.x + ',' + person.y + ')'">
+                 [class.active]="activePersonIds().has(person.id)"
+                 [attr.transform]="'translate(' + person.x + ',' + person.y + ') scale(0.8)'">
                 <!-- Head -->
                 <circle 
                   cx="0" 
-                  cy="-1.2" 
-                  r="0.5" 
+                  cy="-6" 
+                  r="3" 
                   [attr.fill]="cluster.department.color"
-                  [attr.filter]="isPersonActive(cluster.department.deptId, person.id) ? 'url(#person-glow-' + cluster.department.deptId + ')' : ''"
+                  [attr.filter]="activePersonIds().has(person.id) ? 'url(#person-active-glow-' + cluster.department.deptId + ')' : 'url(#person-glow-' + cluster.department.deptId + ')'"
                 />
                 <!-- Body -->
                 <line 
-                  x1="0" y1="-0.7" 
-                  x2="0" y2="0.5" 
+                  x1="0" y1="-3" 
+                  x2="0" y2="4" 
                   [attr.stroke]="cluster.department.color" 
-                  stroke-width="0.15"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
                 />
                 <!-- Arms -->
                 <line 
-                  x1="-0.5" y1="0" 
-                  x2="0.5" y2="0" 
+                  x1="-4" y1="0" 
+                  x2="4" y2="0" 
                   [attr.stroke]="cluster.department.color" 
-                  stroke-width="0.15"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
                 />
                 <!-- Legs -->
                 <line 
-                  x1="0" y1="0.5" 
-                  x2="-0.4" y2="1.2" 
+                  x1="0" y1="4" 
+                  x2="-3" y2="10" 
                   [attr.stroke]="cluster.department.color" 
-                  stroke-width="0.15"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
                 />
                 <line 
-                  x1="0" y1="0.5" 
-                  x2="0.4" y2="1.2" 
+                  x1="0" y1="4" 
+                  x2="3" y2="10" 
                   [attr.stroke]="cluster.department.color" 
-                  stroke-width="0.15"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
                 />
               </g>
             }
@@ -86,19 +98,24 @@ interface DepartmentCluster {
   `,
   styles: [`
     .stick-people-container {
-      flex: 0 0 auto;
-      padding: var(--space-2);
+      width: 100%;
+      padding: var(--space-2) 0;
     }
 
     .people-svg {
       width: 100%;
       height: auto;
-      max-height: 200px;
+      min-height: 150px;
     }
 
     .person-icon {
-      opacity: 0.6;
-      transition: all 0.3s ease;
+      opacity: 0.7;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .person-icon circle,
+    .person-icon line {
+      filter: drop-shadow(0 0 3px currentColor);
     }
 
     .person-icon.active {
@@ -106,92 +123,119 @@ interface DepartmentCluster {
       animation: person-highlight 0.6s ease-in-out;
     }
 
-    .person-icon.active circle,
-    .person-icon.active line {
-      filter: drop-shadow(0 0 2px currentColor);
-    }
-
     @keyframes person-highlight {
       0% { 
-        transform: scale(1);
-        opacity: 0.6;
+        transform: scale(0.8);
       }
       50% { 
-        transform: scale(1.3);
-        opacity: 1;
+        transform: scale(1.2);
       }
       100% { 
-        transform: scale(1);
-        opacity: 1;
+        transform: scale(0.8);
       }
     }
   `]
 })
 export class StickPeopleComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
-  private userToPersonMap = new Map<string, { deptId: string; personId: string }>();
+  private userToPersonMap = new Map<string, string>();
   private nextPersonIndex = new Map<string, number>();
+  private initialized = false;
 
   readonly departments = computed(() => this.dashboardService.departments());
-  readonly animatingEvents = computed(() => this.dashboardService.animatingEvents());
+  
+  clustersData: DepartmentCluster[] = [];
 
-  readonly clusters = computed(() => {
-    const depts = this.departments();
-    return depts.map(dept => ({
-      department: dept,
-      people: this.generatePeopleForDepartment(dept)
-    }));
+  readonly activePersonIds = computed(() => {
+    const activeIds = new Set<string>();
+    const events = this.dashboardService.animatingEvents();
+    
+    for (const event of events) {
+      if (event.animationPhase !== 'user-highlight' && event.animationPhase !== 'pulse-to-brain') continue;
+      
+      const personId = this.userToPersonMap.get(event.userDisplayName);
+      if (personId) {
+        activeIds.add(personId);
+      }
+    }
+    
+    return activeIds;
   });
 
+  private readonly clusterPositions: Record<string, { x: number; y: number }> = {
+    investors: { x: 50, y: 90 },
+    client: { x: 150, y: 90 },
+    legal: { x: 250, y: 90 },
+    is: { x: 350, y: 90 },
+    hr: { x: 450, y: 90 },
+    finance: { x: 550, y: 90 },
+    operations: { x: 650, y: 90 }
+  };
+
   ngOnInit(): void {
-    this.departments().forEach(dept => {
+    this.initializeClusters();
+  }
+
+  private initializeClusters(): void {
+    if (this.initialized) return;
+    
+    const depts = this.departments();
+    if (depts.length === 0) {
+      setTimeout(() => this.initializeClusters(), 100);
+      return;
+    }
+
+    this.clustersData = depts.map(dept => {
+      const pos = this.clusterPositions[dept.deptId] || { x: 350, y: 90 };
       this.nextPersonIndex.set(dept.deptId, 0);
+      return {
+        department: dept,
+        people: this.generatePeopleForDepartment(dept),
+        centerX: pos.x,
+        centerY: pos.y
+      };
     });
+
+    this.initialized = true;
+    this.setupUserMapping();
+  }
+
+  private setupUserMapping(): void {
+    const events = this.dashboardService.animatingEvents();
+    for (const event of events) {
+      this.assignUserToPerson(event.userDisplayName, event.department);
+    }
+  }
+
+  private assignUserToPerson(userName: string, deptId: string): string {
+    if (this.userToPersonMap.has(userName)) {
+      return this.userToPersonMap.get(userName)!;
+    }
+
+    const nextIndex = this.nextPersonIndex.get(deptId) || 0;
+    const personId = `${deptId}-${nextIndex % 30}`;
+    this.userToPersonMap.set(userName, personId);
+    this.nextPersonIndex.set(deptId, nextIndex + 1);
+    return personId;
   }
 
   private generatePeopleForDepartment(dept: Department): PersonIcon[] {
     const people: PersonIcon[] = [];
-    const count = 40;
-    const cols = 8;
-    const rows = Math.ceil(count / cols);
+    const count = 30;
+    const cols = 6;
     
     for (let i = 0; i < count; i++) {
       const row = Math.floor(i / cols);
       const col = i % cols;
-      const offsetX = (row % 2) * 0.5;
+      const offsetX = (row % 2) * 6;
       
       people.push({
         id: `${dept.deptId}-${i}`,
-        x: col * 1.5 + offsetX,
-        y: row * 2.5,
-        isActive: false
+        x: (col - cols / 2) * 12 + offsetX,
+        y: (row - 2) * 18
       });
     }
     
     return people;
-  }
-
-  isPersonActive(deptId: string, personId: string): boolean {
-    const events = this.animatingEvents();
-    
-    for (const event of events) {
-      if (event.department !== deptId) continue;
-      if (event.animationPhase !== 'user-highlight' && event.animationPhase !== 'pulse-to-brain') continue;
-      
-      let mapping = this.userToPersonMap.get(event.userDisplayName);
-      
-      if (!mapping || mapping.deptId !== deptId) {
-        const nextIndex = this.nextPersonIndex.get(deptId) || 0;
-        mapping = { deptId, personId: `${deptId}-${nextIndex % 40}` };
-        this.userToPersonMap.set(event.userDisplayName, mapping);
-        this.nextPersonIndex.set(deptId, nextIndex + 1);
-      }
-      
-      if (mapping.personId === personId) {
-        return true;
-      }
-    }
-    
-    return false;
   }
 }
