@@ -1,0 +1,107 @@
+:root {
+  --color-bg-dark: #0a0a0f;
+  --color-bg-panel: #12121a;
+  --color-bg-card: #1a1a24;
+  --color-border: #2a2a3a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #8888aa;
+  --color-text-muted: #555566;
+  
+  --color-cyan: #22d3ee;
+  --color-cyan-glow: rgba(34, 211, 238, 0.5);
+  --color-purple: #a855f7;
+  --color-purple-glow: rgba(168, 85, 247, 0.5);
+  --color-green: #22c55e;
+  --color-green-glow: rgba(34, 197, 94, 0.5);
+  --color-orange: #f97316;
+  --color-orange-glow: rgba(249, 115, 22, 0.5);
+  --color-yellow: #eab308;
+  --color-yellow-glow: rgba(234, 179, 8, 0.5);
+  --color-blue: #3b82f6;
+  --color-blue-glow: rgba(59, 130, 246, 0.5);
+  --color-pink: #ec4899;
+  --color-pink-glow: rgba(236, 72, 153, 0.5);
+  --color-teal: #10b981;
+  --color-teal-glow: rgba(16, 185, 129, 0.5);
+
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--color-bg-dark);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-panel);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 16px currentColor);
+  }
+}
