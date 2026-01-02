@@ -163,13 +163,13 @@ export class StickPeopleComponent implements OnInit {
   });
 
   private readonly clusterPositions: Record<string, { x: number; y: number }> = {
-    investors: { x: 50, y: 90 },
-    client: { x: 150, y: 90 },
-    legal: { x: 250, y: 90 },
-    is: { x: 350, y: 90 },
-    hr: { x: 450, y: 90 },
-    finance: { x: 550, y: 90 },
-    operations: { x: 650, y: 90 }
+    investors: { x: 70, y: 90 },
+    client: { x: 170, y: 110 },
+    legal: { x: 280, y: 90 },
+    is: { x: 390, y: 100 },
+    hr: { x: 500, y: 110 },
+    finance: { x: 590, y: 90 },
+    operations: { x: 680, y: 100 }
   };
 
   ngOnInit(): void {
@@ -221,21 +221,50 @@ export class StickPeopleComponent implements OnInit {
 
   private generatePeopleForDepartment(dept: Department): PersonIcon[] {
     const people: PersonIcon[] = [];
-    const count = 30;
-    const cols = 6;
+    const totalCount = 30;
     
-    for (let i = 0; i < count; i++) {
-      const row = Math.floor(i / cols);
-      const col = i % cols;
-      const offsetX = (row % 2) * 6;
+    const rings = 4;
+    const r0 = 8;
+    const ringSpacing = 14;
+    const startAngle = this.degToRad(200);
+    const endAngle = this.degToRad(340);
+    const aspectY = 0.85;
+    
+    let remaining = totalCount;
+    let personIndex = 0;
+    
+    for (let k = 0; k < rings && remaining > 0; k++) {
+      const r = r0 + k * ringSpacing;
+      const span = Math.abs(endAngle - startAngle);
+      const desiredArcSpacing = 12;
       
-      people.push({
-        id: `${dept.deptId}-${i}`,
-        x: (col - cols / 2) * 12 + offsetX,
-        y: (row - 2) * 18
-      });
+      let n = Math.max(4, Math.floor((r * span) / desiredArcSpacing));
+      n = Math.min(n, remaining);
+      
+      const step = span / n;
+      const stagger = (k % 2) * (step / 2);
+      
+      for (let j = 0; j < n; j++) {
+        const angle = startAngle + (j + 0.5) * step + stagger;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r * aspectY;
+        
+        people.push({
+          id: `${dept.deptId}-${personIndex}`,
+          x: x,
+          y: y
+        });
+        
+        personIndex++;
+      }
+      
+      remaining -= n;
     }
     
     return people;
+  }
+
+  private degToRad(deg: number): number {
+    return (deg * Math.PI) / 180;
   }
 }
