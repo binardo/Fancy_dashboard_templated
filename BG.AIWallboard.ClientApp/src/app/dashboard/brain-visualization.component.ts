@@ -8,148 +8,114 @@ import { DashboardService } from '../core/dashboard.service';
   imports: [CommonModule],
   template: `
     <div class="brain-container">
-      <svg viewBox="0 0 500 350" class="brain-svg" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 600 450" class="brain-svg" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <!-- Gradients for 3D effect -->
-          <radialGradient id="brain-base-gradient" cx="30%" cy="30%" r="70%">
-            <stop offset="0%" stop-color="#1a1a2e" stop-opacity="0.9"/>
-            <stop offset="100%" stop-color="#0a0a15" stop-opacity="0.95"/>
-          </radialGradient>
-          
+          <!-- Glow filters for each department -->
           @for (dept of departments(); track dept.deptId) {
-            <radialGradient [id]="'gradient-' + dept.deptId" cx="40%" cy="30%" r="70%">
-              <stop offset="0%" [attr.stop-color]="getSegmentColor(dept.deptId)" stop-opacity="0.9"/>
-              <stop offset="70%" [attr.stop-color]="getSegmentColor(dept.deptId)" stop-opacity="0.6"/>
-              <stop offset="100%" [attr.stop-color]="getDarkerColor(dept.deptId)" stop-opacity="0.4"/>
-            </radialGradient>
-            <filter [id]="'glow-' + dept.deptId" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur [attr.stdDeviation]="isSegmentActive(dept.deptId) ? 12 : 4" result="coloredBlur"/>
+            <filter [id]="'glow-overlay-' + dept.deptId" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur [attr.stdDeviation]="isSegmentActive(dept.deptId) ? 20 : 0" result="coloredBlur"/>
               <feMerge>
                 <feMergeNode in="coloredBlur"/>
                 <feMergeNode in="SourceGraphic"/>
               </feMerge>
             </filter>
           }
+          
+          <!-- Global glow filter for active state -->
+          <filter id="active-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="15" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
 
-        <!-- Brain shadow/base layer -->
-        <ellipse cx="250" cy="175" rx="180" ry="140" fill="url(#brain-base-gradient)" opacity="0.3"/>
+        <!-- Brain PNG image as base -->
+        <image 
+          href="brain.png" 
+          x="50" 
+          y="25" 
+          width="500" 
+          height="400"
+          preserveAspectRatio="xMidYMid meet"
+        />
 
-        <!-- Brain outline - realistic side view -->
-        <g class="brain-lobes" transform="translate(50, 25)">
-          
-          <!-- Investors (Frontal lobe - left front, cyan) -->
-          <path 
-            class="brain-segment"
+        <!-- Invisible overlay regions for glow effects -->
+        <g class="glow-overlays">
+          <!-- Investors (Orange frontal lobe area - top left) -->
+          <ellipse 
+            class="glow-region"
             [class.active]="isSegmentActive('investors')"
-            [attr.fill]="'url(#gradient-investors)'"
-            [attr.filter]="'url(#glow-investors)'"
-            d="M80,200 
-               C50,180 30,140 40,100 
-               C50,60 80,35 120,30 
-               C150,28 170,40 180,60
-               L170,80 
-               C160,100 150,130 140,160
-               C130,180 110,195 80,200 Z"
+            cx="200" cy="130" rx="70" ry="55"
+            [attr.fill]="getSegmentColor('investors')"
+            [attr.filter]="isSegmentActive('investors') ? 'url(#active-glow)' : 'none'"
           />
-          <text x="85" y="120" class="segment-label">Investors</text>
 
-          <!-- Client (lower frontal, orange/red) -->
-          <path 
-            class="brain-segment"
+          <!-- Client (Orange/red lower frontal - middle left) -->
+          <ellipse 
+            class="glow-region"
             [class.active]="isSegmentActive('client')"
-            [attr.fill]="'url(#gradient-client)'"
-            [attr.filter]="'url(#glow-client)'"
-            d="M170,80 
-               C180,60 200,45 230,50
-               C250,55 260,70 265,90
-               L250,110
-               C240,100 220,95 200,100
-               C180,105 170,95 170,80 Z"
+            cx="175" cy="220" rx="50" ry="40"
+            [attr.fill]="getSegmentColor('client')"
+            [attr.filter]="isSegmentActive('client') ? 'url(#active-glow)' : 'none'"
           />
-          <text x="195" y="85" class="segment-label">Client</text>
 
-          <!-- Legal (top/parietal, yellow) -->
-          <path 
-            class="brain-segment"
+          <!-- Legal (Purple/pink parietal - top center) -->
+          <ellipse 
+            class="glow-region"
             [class.active]="isSegmentActive('legal')"
-            [attr.fill]="'url(#gradient-legal)'"
-            [attr.filter]="'url(#glow-legal)'"
-            d="M230,50 
-               C260,40 290,35 320,45
-               C345,55 355,75 350,100
-               L330,95
-               C320,80 300,70 280,70
-               C260,70 250,60 230,50 Z"
+            cx="320" cy="110" rx="65" ry="50"
+            [attr.fill]="getSegmentColor('legal')"
+            [attr.filter]="isSegmentActive('legal') ? 'url(#active-glow)' : 'none'"
           />
-          <text x="275" y="70" class="segment-label">Legal</text>
 
-          <!-- IS (occipital/back top, purple) -->
-          <path 
-            class="brain-segment"
+          <!-- IS (Purple area - top right) -->
+          <ellipse 
+            class="glow-region"
             [class.active]="isSegmentActive('is')"
-            [attr.fill]="'url(#gradient-is)'"
-            [attr.filter]="'url(#glow-is)'"
-            d="M350,100 
-               C365,85 385,90 395,115
-               C405,145 395,180 375,200
-               L355,180
-               C365,160 365,135 355,115
-               C350,105 350,100 350,100 Z"
+            cx="420" cy="140" rx="55" ry="50"
+            [attr.fill]="getSegmentColor('is')"
+            [attr.filter]="isSegmentActive('is') ? 'url(#active-glow)' : 'none'"
           />
-          <text x="360" y="145" class="segment-label">IS</text>
 
-          <!-- HR (temporal/bottom center, blue) -->
-          <path 
-            class="brain-segment"
+          <!-- HR (Cyan/blue temporal - center) -->
+          <ellipse 
+            class="glow-region"
             [class.active]="isSegmentActive('hr')"
-            [attr.fill]="'url(#gradient-hr)'"
-            [attr.filter]="'url(#glow-hr)'"
-            d="M140,160 
-               C150,130 160,110 200,100
-               C220,95 240,100 250,110
-               L260,140
-               C250,160 230,180 200,195
-               C170,205 150,195 140,160 Z"
+            cx="280" cy="230" rx="60" ry="45"
+            [attr.fill]="getSegmentColor('hr')"
+            [attr.filter]="isSegmentActive('hr') ? 'url(#active-glow)' : 'none'"
           />
-          <text x="185" y="160" class="segment-label">HR</text>
 
-          <!-- Finance (lower middle, green) -->
-          <path 
-            class="brain-segment"
+          <!-- Finance (Green occipital - right side) -->
+          <ellipse 
+            class="glow-region"
             [class.active]="isSegmentActive('finance')"
-            [attr.fill]="'url(#gradient-finance)'"
-            [attr.filter]="'url(#glow-finance)'"
-            d="M260,140 
-               C265,120 290,100 330,95
-               L355,115
-               C365,135 365,160 355,180
-               L330,190
-               C300,195 270,180 260,140 Z"
+            cx="470" cy="220" rx="55" ry="50"
+            [attr.fill]="getSegmentColor('finance')"
+            [attr.filter]="isSegmentActive('finance') ? 'url(#active-glow)' : 'none'"
           />
-          <text x="295" y="155" class="segment-label">Finance</text>
 
-          <!-- Operations (cerebellum/back bottom, bright green) -->
-          <path 
-            class="brain-segment"
+          <!-- Operations (Pink cerebellum - bottom right) -->
+          <ellipse 
+            class="glow-region"
             [class.active]="isSegmentActive('operations')"
-            [attr.fill]="'url(#gradient-operations)'"
-            [attr.filter]="'url(#glow-operations)'"
-            d="M330,190 
-               L355,180
-               C375,200 385,230 370,260
-               C355,280 320,285 290,270
-               C270,260 265,240 280,220
-               C295,205 315,195 330,190 Z"
+            cx="430" cy="330" rx="50" ry="40"
+            [attr.fill]="getSegmentColor('operations')"
+            [attr.filter]="isSegmentActive('operations') ? 'url(#active-glow)' : 'none'"
           />
-          <text x="315" y="245" class="segment-label">Operations</text>
+        </g>
 
-          <!-- Brain stem hint -->
-          <path 
-            d="M200,195 C190,220 180,250 175,280 C172,295 178,305 190,305 C205,305 215,290 210,270 C205,250 200,220 200,195"
-            fill="#1a1a2e"
-            opacity="0.5"
-          />
+        <!-- Department labels -->
+        <g class="labels">
+          <text x="200" y="130" class="segment-label">Investors</text>
+          <text x="175" y="220" class="segment-label">Client</text>
+          <text x="320" y="110" class="segment-label">Legal</text>
+          <text x="420" y="140" class="segment-label">IS</text>
+          <text x="280" y="230" class="segment-label">HR</text>
+          <text x="470" y="220" class="segment-label">Finance</text>
+          <text x="430" y="330" class="segment-label">Operations</text>
         </g>
 
         <!-- Animated pulse dots -->
@@ -159,7 +125,7 @@ import { DashboardService } from '../core/dashboard.service';
               class="pulse-dot"
               [attr.cx]="getPulsePosition(event).x"
               [attr.cy]="getPulsePosition(event).y"
-              r="6"
+              r="8"
               [attr.fill]="getDepartmentColor(event.department)"
             />
           }
@@ -178,51 +144,49 @@ import { DashboardService } from '../core/dashboard.service';
 
     .brain-svg {
       width: 100%;
-      max-width: 550px;
+      max-width: 600px;
       height: auto;
     }
 
-    .brain-segment {
-      opacity: 0.75;
-      transition: all 0.4s ease;
-      cursor: pointer;
+    .glow-region {
+      opacity: 0;
+      transition: opacity 0.3s ease;
       mix-blend-mode: screen;
+      pointer-events: none;
     }
 
-    .brain-segment:hover {
-      opacity: 0.9;
-    }
-
-    .brain-segment.active {
-      opacity: 1;
-      animation: segment-pulse 0.8s ease-in-out;
+    .glow-region.active {
+      opacity: 0.5;
+      animation: region-pulse 0.8s ease-in-out;
     }
 
     .segment-label {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 700;
       fill: white;
+      text-anchor: middle;
+      dominant-baseline: middle;
       pointer-events: none;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.9)) drop-shadow(0 0 8px rgba(0,0,0,0.7));
     }
 
     .pulse-dot {
       animation: pulse-glow 0.5s ease-in-out infinite;
-      filter: drop-shadow(0 0 8px currentColor);
+      filter: drop-shadow(0 0 12px currentColor);
     }
 
-    @keyframes segment-pulse {
-      0%, 100% { opacity: 0.75; }
-      50% { opacity: 1; filter: brightness(1.4); }
+    @keyframes region-pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.7; }
     }
 
     @keyframes pulse-glow {
       0%, 100% { 
-        r: 6;
+        r: 8;
         opacity: 1;
       }
       50% { 
-        r: 12;
+        r: 16;
         opacity: 0.6;
       }
     }
@@ -245,13 +209,13 @@ export class BrainVisualizationComponent {
   };
 
   private readonly segmentCenters: Record<string, { x: number; y: number }> = {
-    investors: { x: 160, y: 140 },
-    client: { x: 260, y: 105 },
-    legal: { x: 330, y: 85 },
-    is: { x: 420, y: 160 },
-    hr: { x: 260, y: 175 },
-    finance: { x: 360, y: 170 },
-    operations: { x: 380, y: 255 }
+    investors: { x: 200, y: 130 },
+    client: { x: 175, y: 220 },
+    legal: { x: 320, y: 110 },
+    is: { x: 420, y: 140 },
+    hr: { x: 280, y: 230 },
+    finance: { x: 470, y: 220 },
+    operations: { x: 430, y: 330 }
   };
 
   getSegmentColor(deptId: string): string {
